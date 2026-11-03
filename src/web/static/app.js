@@ -161,8 +161,22 @@ async function handleGenerate() {
         });
 
         if (!resp.ok) {
-            const errData = await resp.json();
-            throw new Error(errData.detail || 'Ошибка генерации');
+            let errorMsg = 'Ошибка генерации';
+            try {
+                const errData = await resp.json();
+                if (Array.isArray(errData.detail)) {
+                    errorMsg = errData.detail
+                        .map(d => `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg}`)
+                        .join('\n');
+                } else if (typeof errData.detail === 'string') {
+                    errorMsg = errData.detail;
+                } else if (errData.detail) {
+                    errorMsg = JSON.stringify(errData.detail);
+                }
+            } catch (e) {
+                errorMsg = `Ошибка сервера: HTTP ${resp.status}`;
+            }
+            throw new Error(errorMsg);
         }
 
         const data = await resp.json();

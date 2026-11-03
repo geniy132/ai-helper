@@ -62,7 +62,19 @@ class OllamaProvider(BaseLLMProvider):
 
             cleaned_json_str = re.sub(r"^```json\s*", "", raw_text.strip())
             cleaned_json_str = re.sub(r"```$", "", cleaned_json_str.strip())
-            data = json.loads(cleaned_json_str)
+
+            try:
+                data = json.loads(cleaned_json_str)
+            except json.JSONDecodeError as jde:
+                # Резервная попытка извлечь корневой JSON-объект
+                match = re.search(r"\{[\s\S]*\}", cleaned_json_str)
+                if match:
+                    data = json.loads(match.group(0))
+                else:
+                    raise ValueError(
+                        f"Модель {self.model_name} вернула невалидный JSON: "
+                        f"{cleaned_json_str[:120]}"
+                    ) from jde
 
             card = ProductCardOutput(**data)
             sanitized_card = AntiHallucinationGuard.verify_and_sanitize(
@@ -78,6 +90,21 @@ class OllamaProvider(BaseLLMProvider):
                 f"Локальный сервер Ollama не отвечает на {self.base_url}. "
                 "Убедитесь, что сервис запущен: 'ollama serve'"
             ) from ce
+        except httpx.HTTPStatusError as hse:
+            if hse.response.status_code == 404:
+                raise RuntimeError(
+                    f"Модель '{self.model_name}' не найдена в Ollama. "
+                    f"Скачайте её командой: 'ollama pull {self.model_name}'"
+                ) from hse
+            raise RuntimeError(
+                f"Ошибка сервера Ollama (HTTP {hse.response.status_code}): "
+                f"{hse.response.text[:100]}"
+            ) from hse
+        except httpx.TimeoutException as te:
+            raise RuntimeError(
+                f"Превышено время ожидания ответа от Ollama ({self.timeout}с). "
+                "Повторите попытку или выберите более лёгкую модель."
+            ) from te
         except Exception as e:
             logger.error(
                 f"Ошибка генерации через Ollama ({self.model_name}): {e}"
