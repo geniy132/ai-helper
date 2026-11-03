@@ -1,6 +1,6 @@
 # AI-помощник для подготовки товарных описаний (B2B КИПиА)
 
-[![CI Pipeline](https://github.com/geniy132/souz-pribor-ai-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/geniy132/souz-pribor-ai-helper/actions)
+[![CI Pipeline](https://github.com/geniy132/ai-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/geniy132/ai-helper/actions)
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063.svg)
@@ -88,48 +88,101 @@ ai_helper/
 
 ---
 
-## 🛠 Быстрый запуск
+## 🛠 Полная инструкция по запуску
 
-### Вариант 1: Локальный запуск (Python 3.10+)
+### Шаг 1: Запуск локальной модели в Ollama
 
-```bash
-# 1. Клонирование репозитория
-git clone https://github.com/geniy132/souz-pribor-ai-helper.git
-cd souz-pribor-ai-helper
+Для работы сервиса необходим работающий сервер Ollama:
 
-# 2. Создание и активация виртуального окружения
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
+1. **Запустите фоновый сервис Ollama** (в отдельном окне терминала):
+   ```powershell
+   ollama serve
+   ```
+   *Сервис поднимет локальный REST API на `http://localhost:11434`.*
 
-# 3. Установка зависимостей
-pip install -r requirements.txt
+2. **(Опционально) Проверьте наличие модели Qwen:**
+   ```powershell
+   ollama list
+   ```
+   В списке отобразятся установленные модели (например, `qwen2.5-coder:1.5b` или `qwen2.5-coder:32b`).
+   
+   *Если вы хотите загрузить модель с нуля:*
+   ```powershell
+   ollama pull qwen2.5-coder:1.5b
+   ```
 
-# 4. (Опционально) Настройка API-ключей
-cp .env.example .env
-# Отредактируйте .env при необходимости использовать реальный Gemini или OpenAI.
-# По умолчанию включен LLM_PROVIDER=mock (ключи не требуются!)
+---
 
-# 5. Запуск веб-сервиса
-uvicorn src.web.app:app --reload --port 8000
-```
-Откройте браузер по адресу: **`http://localhost:8000`**
+### Шаг 2: Установка и запуск веб-сервера проекта
 
-### Вариант 2: Запуск в Docker
+1. **Клонирование репозитория:**
+   ```powershell
+   git clone https://github.com/geniy132/ai-helper.git
+   cd ai-helper
+   ```
 
-```bash
+2. **Создание и активация виртуального окружения (Python 3.10+):**
+   ```powershell
+   # Создание venv (если еще не создано):
+   python -m venv venv
+
+   # Активация на Windows (PowerShell):
+   .\venv\Scripts\Activate.ps1
+   # Либо Windows (CMD):
+   # .\venv\Scripts\activate.bat
+   # Либо Linux / macOS:
+   # source venv/bin/activate
+   ```
+
+3. **Установка зависимостей:**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+4. **Файл конфигурации `.env`:**
+   В корне проекта уже подготовлен файл `.env`:
+   ```env
+   LLM_PROVIDER=ollama
+   OLLAMA_BASE_URL=http://localhost:11434
+   OLLAMA_MODEL=qwen2.5-coder:1.5b
+   HOST=127.0.0.1
+   PORT=8000
+   ```
+   *(При необходимости модель можно легко переключить на `qwen2.5-coder:32b`).*
+
+5. **Запуск веб-сервера:**
+   
+   **Способ А (самый простой):**
+   ```powershell
+   python run.py
+   ```
+
+   **Способ Б (через Uvicorn с автоперезагрузкой при изменении кода):**
+   ```powershell
+   uvicorn src.web.app:app --host 127.0.0.1 --port 8000 --reload
+   ```
+
+6. **Откройте приложение в браузере:**
+   Перейдите по ссылке: **[http://localhost:8000](http://localhost:8000)**
+
+---
+
+### Запуск в Docker
+
+Если вы предпочитаете запуск в контейнере:
+```powershell
 docker-compose up --build
 ```
-Сервис доступен по адресу: **`http://localhost:8000`**
+*Сервис будет доступен по адресу `http://localhost:8000`.*
+
+---
 
 ### Запуск тестов
 
-```bash
+Комплекс из 11 тестов проверяет модели, валидаторы пропусков, защиту от галлюцинаций и API:
+```powershell
 pytest -v
 ```
-Все 11 тестов проверяют модели, валидаторы, детектор галлюцинаций и API эндпоинты.
 
 ---
 
