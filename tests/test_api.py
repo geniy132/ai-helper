@@ -13,6 +13,13 @@ async def test_health_endpoint():
         assert "providers_available" in data
 
 @pytest.mark.asyncio
+async def test_favicon_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/favicon.ico")
+        assert resp.status_code == 200
+
+@pytest.mark.asyncio
 async def test_presets_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,6 +35,19 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Отдаёт SVG-иконку для предотвращения ошибки 404 в браузере"""
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<rect width="100" height="100" rx="20" fill="#2563eb"/>'
+        '<rect x="25" y="25" width="50" height="50" rx="10" fill="#ffffff"/>'
+        '<circle cx="50" cy="50" r="12" fill="#2563eb"/>'
+        '</svg>'
+    )
+    return Response(content=svg, media_type="image/svg+xml")
 
 
 @app.get("/api/health")

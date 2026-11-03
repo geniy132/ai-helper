@@ -7,8 +7,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 class Config:
-    PROJECT_NAME: str = "B2B AI Product Card Assistant (Ollama Qwen)"
-    VERSION: str = "1.0.0"
+    PROJECT_NAME: str = "B2B AI Product Card Assistant"
+    VERSION: str = "0.1"
     
     # Выбранный по ТЗ LLM-провайдер: "ollama" (или "mock" для оффлайн-проверки)
     DEFAULT_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama").lower()
