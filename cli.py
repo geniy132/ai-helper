@@ -32,9 +32,9 @@ async def run_cli():
     parser.add_argument(
         "--provider",
         type=str,
-        default="mock",
-        choices=["mock", "google", "openai"],
-        help="Используемый провайдер генерации (по умолчанию: mock)"
+        default="ollama",
+        choices=["ollama", "mock", "google", "openai"],
+        help="Используемый провайдер генерации (по умолчанию: ollama)"
     )
     parser.add_argument(
         "--format",

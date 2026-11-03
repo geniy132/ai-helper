@@ -11,8 +11,12 @@ class Config:
     PROJECT_NAME: str = "B2B AI Product Card Assistant"
     VERSION: str = "1.0.0"
     
-    # LLM Provider selection: "google", "openai", or "mock"
-    DEFAULT_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock").lower()
+    # LLM Provider selection: "ollama", "google", "openai", or "mock"
+    DEFAULT_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama").lower()
+    
+    # Ollama settings (Local Qwen)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:1.5b")
     
     # Google Gemini settings
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
@@ -22,10 +26,6 @@ class Config:
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    
-    # Anthropic settings
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
     
     # Server settings
     HOST: str = os.getenv("HOST", "127.0.0.1")

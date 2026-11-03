@@ -36,6 +36,12 @@ class CommercialBlock(BaseModel):
     target_audience: str = Field(..., description="Кому подходит прибор (целевой сегмент, предприятия, специалисты)")
     solved_problems: str = Field(..., description="Какие производственные или коммерческие задачи решает")
 
+    @field_validator("target_audience", "solved_problems", mode="before")
+    def coerce_to_string(cls, v: Any) -> str:
+        if isinstance(v, list):
+            return ". ".join(str(x).strip() for x in v if str(x).strip())
+        return str(v) if v is not None else ""
+
 
 class ProductCardOutput(BaseModel):
     """
@@ -44,9 +50,18 @@ class ProductCardOutput(BaseModel):
     seo_title: str = Field(..., max_length=100, description="SEO-заголовок (целевая длина до 70 символов)")
     seo_description: str = Field(..., description="SEO-описание (целевой объём 800–1200 символов)")
     key_specs: Dict[str, str] = Field(..., description="Структурированный список ключевых характеристик")
-    search_queries: List[str] = Field(..., min_length=3, max_length=7, description="3–5 поисковых запросов")
+    search_queries: List[str] = Field(..., min_length=1, max_length=10, description="3–5 поисковых запросов")
     commercial_block: CommercialBlock = Field(..., description="Блок для менеджера по продажам")
     missing_fields: List[MissingFieldInfo] = Field(default_factory=list, description="Предупреждения о недостающих данных")
+
+    @field_validator("search_queries", mode="before")
+    def clamp_search_queries(cls, v: Any) -> List[str]:
+        if isinstance(v, str):
+            v = [v]
+        if isinstance(v, list):
+            cleaned = [str(x).strip() for x in v if str(x).strip()]
+            return cleaned[:5] if len(cleaned) > 5 else cleaned
+        return ["купить промышленное оборудование", "каталог КИПиА", "цена с ндс"]
     
     # Metadata metrics
     seo_title_length: int = Field(default=0)

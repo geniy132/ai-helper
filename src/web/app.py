@@ -45,6 +45,7 @@ async def health_check():
         "version": config.VERSION,
         "default_provider": config.DEFAULT_PROVIDER,
         "providers_available": {
+            "ollama_local": True,
             "mock": True,
             "google_gemini": bool(config.GEMINI_API_KEY),
             "openai": bool(config.OPENAI_API_KEY)

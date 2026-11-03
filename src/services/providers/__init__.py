@@ -4,20 +4,23 @@ from src.services.providers.base import BaseLLMProvider
 from src.services.providers.mock_provider import MockLLMProvider
 from src.services.providers.google_provider import GoogleGeminiProvider
 from src.services.providers.openai_provider import OpenAIProvider
+from src.services.providers.ollama_provider import OllamaProvider
 from src.config import config
 
 class ProviderFactory:
     """
     Фабрика создания LLM-провайдеров.
-    Позволяет гибко переключаться между Google Gemini, OpenAI и Mock-режимом.
+    Позволяет гибко переключаться между Ollama (Qwen), Google Gemini, OpenAI и Mock-режимом.
     """
     @staticmethod
     def get_provider(provider_type: Optional[str] = None) -> BaseLLMProvider:
         selected = (provider_type or config.DEFAULT_PROVIDER).lower()
 
-        if selected in ("google", "gemini"):
+        if selected in ("ollama", "qwen", "local"):
+            return OllamaProvider()
+
+        elif selected in ("google", "gemini"):
             if not config.GEMINI_API_KEY:
-                # Если ключ не задан, безопасно откатываемся на Mock с логированием
                 return MockLLMProvider()
             return GoogleGeminiProvider()
 
@@ -30,13 +33,13 @@ class ProviderFactory:
             return MockLLMProvider()
 
         else:
-            # Fallback to mock
-            return MockLLMProvider()
+            return OllamaProvider()
 
 __all__ = [
     "BaseLLMProvider",
     "MockLLMProvider",
     "GoogleGeminiProvider",
     "OpenAIProvider",
+    "OllamaProvider",
     "ProviderFactory"
 ]
