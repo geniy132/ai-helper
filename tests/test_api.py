@@ -73,3 +73,45 @@ async def test_generate_endpoint_empty_name_returns_422():
         payload = {"name": "   ", "manufacturer": "Тест"}
         resp = await client.post("/api/generate", json=payload)
         assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_generate_endpoint_v1_path():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        payload = {
+            "name": "Тестовый манометр МТИ",
+            "manufacturer": "Манотомь",
+            "specs": {"класс точности": "0.6"},
+            "description": "Прибор для измерения давления.",
+        }
+        resp = await client.post(
+            "/api/v1/generate?provider=mock", json=payload
+        )
+        assert resp.status_code == 200
+        assert "seo_title" in resp.json()
+
+
+@pytest.mark.asyncio
+async def test_permission_api_key_check(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret-test-token")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        payload = {
+            "name": "Тестовый датчик",
+            "specs": {},
+        }
+        # Без ключа -> 403 Forbidden
+        unauth_resp = await client.post("/api/generate", json=payload)
+        assert unauth_resp.status_code == 403
+
+        # С корректным X-API-Key -> 200 OK
+        headers = {"X-API-Key": "secret-test-token"}
+        auth_resp = await client.post(
+            "/api/generate?provider=mock", json=payload, headers=headers
+        )
+        assert auth_resp.status_code == 200
