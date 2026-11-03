@@ -3,7 +3,7 @@ import json
 import logging
 import re
 from typing import Optional
-from openai import AsyncOpenAI
+import httpx
 
 from src.models.product import ProductInput, ProductCardOutput
 from src.services.providers.base import BaseLLMProvider
@@ -15,51 +15,62 @@ logger = logging.getLogger(__name__)
 
 class OllamaProvider(BaseLLMProvider):
     """
-    Провайдер интеграции с локальной Ollama (Qwen 2.5 Coder).
-    Работает через локальный порт 11434 по OpenAI-совместимому протоколу.
-    100% бесплатно, безопасно и локально на GPU.
+    Провайдер интеграции с выбранной моделью Ollama Qwen.
+    Использует нативный REST API Ollama (/api/chat) через легковесный асинхронный httpx.
     """
 
     def __init__(
         self,
         base_url: Optional[str] = None,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        timeout: float = 60.0
     ):
-        self.base_url = base_url or config.OLLAMA_BASE_URL
+        self.base_url = (base_url or config.OLLAMA_BASE_URL).rstrip("/")
         self.model_name = model_name or config.OLLAMA_MODEL
-        self.client = AsyncOpenAI(
-            base_url=self.base_url,
-            api_key="ollama"  # Ollama не требует реального ключа
-        )
+        self.timeout = timeout
 
     @property
     def provider_name(self) -> str:
-        return f"Ollama Local ({self.model_name})"
+        return f"Ollama ({self.model_name})"
 
     async def generate_card(self, product: ProductInput) -> ProductCardOutput:
         user_prompt = format_user_prompt(product.model_dump())
 
-        try:
-            response = await self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2
-            )
+        url = f"{self.base_url}/api/chat"
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            "format": "json",
+            "stream": False,
+            "options": {
+                "temperature": 0.2
+            }
+        }
 
-            raw_text = response.choices[0].message.content or "{}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+
+            res_json = response.json()
+            raw_text = res_json.get("message", {}).get("content", "{}")
+
             cleaned_json_str = re.sub(r"^```json\s*", "", raw_text.strip())
             cleaned_json_str = re.sub(r"```$", "", cleaned_json_str.strip())
             data = json.loads(cleaned_json_str)
 
             card = ProductCardOutput(**data)
-            # Пропускаем через программный защитный слой от галлюцинаций
             sanitized_card = AntiHallucinationGuard.verify_and_sanitize(card, product)
             return sanitized_card
 
+        except httpx.ConnectError as ce:
+            logger.error(f"Не удалось подключиться к Ollama на {self.base_url}: {ce}")
+            raise RuntimeError(
+                f"Локальный сервер Ollama не отвечает на {self.base_url}. Убедитесь, что сервис запущен: 'ollama serve'"
+            ) from ce
         except Exception as e:
-            logger.error(f"Ошибка вызова Ollama ({self.model_name}): {e}")
-            raise RuntimeError(f"Сбой при обращении к локальной Ollama: {str(e)}") from e
+            logger.error(f"Ошибка генерации через Ollama ({self.model_name}): {e}")
+            raise RuntimeError(f"Сбой генерации карточки через Ollama: {str(e)}") from e

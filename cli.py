@@ -33,7 +33,7 @@ async def run_cli():
         "--provider",
         type=str,
         default="ollama",
-        choices=["ollama", "mock", "google", "openai"],
+        choices=["ollama", "mock"],
         help="Используемый провайдер генерации (по умолчанию: ollama)"
     )
     parser.add_argument(

@@ -43,12 +43,11 @@ async def health_check():
     return {
         "status": "healthy",
         "version": config.VERSION,
+        "selected_model": config.OLLAMA_MODEL,
         "default_provider": config.DEFAULT_PROVIDER,
         "providers_available": {
-            "ollama_local": True,
-            "mock": True,
-            "google_gemini": bool(config.GEMINI_API_KEY),
-            "openai": bool(config.OPENAI_API_KEY)
+            "ollama_qwen": True,
+            "mock_fallback": True
         }
     }
 
