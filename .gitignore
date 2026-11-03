@@ -35,6 +35,15 @@ wheels/
 .coverage
 htmlcov/
 
+# Linters, Type Checkers & Tool Caches
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.pyrefly/
+*pyrefly*
+.dmypy.json
+dmypy.json
+
 # IDE & OS
 .vscode/
 .idea/

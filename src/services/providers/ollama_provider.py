@@ -7,6 +7,7 @@ import re
 import httpx
 
 from src.config import config
+from src.constants import DEFAULT_TEMPERATURE, DEFAULT_TIMEOUT_SEC
 from src.models.product import ProductCardOutput, ProductInput
 from src.prompts.templates import SYSTEM_PROMPT, format_user_prompt
 from src.services.anti_hallucination import AntiHallucinationGuard
@@ -26,7 +27,7 @@ class OllamaProvider(BaseLLMProvider):
         self,
         base_url: str | None = None,
         model_name: str | None = None,
-        timeout: float = 60.0,
+        timeout: float = DEFAULT_TIMEOUT_SEC,
     ):
         self.base_url = (base_url or config.OLLAMA_BASE_URL).rstrip("/")
         self.model_name = model_name or config.OLLAMA_MODEL
@@ -48,7 +49,7 @@ class OllamaProvider(BaseLLMProvider):
             ],
             "format": "json",
             "stream": False,
-            "options": {"temperature": 0.2},
+            "options": {"temperature": DEFAULT_TEMPERATURE},
         }
 
         try:

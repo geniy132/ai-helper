@@ -2,11 +2,21 @@ from __future__ import annotations
 
 import re
 
+from src.constants import (
+    DATA_NOT_FOUND_LABEL,
+    DATA_UNVERIFIED_SUFFIX,
+    MIN_DESCRIPTION_LEN_FOR_AUDIT,
+    SEO_DESC_MAX_LEN,
+    SEO_DESC_MIN_LEN,
+    SEO_DESC_TRUNCATE_TARGET,
+    SEO_TITLE_MAX_LEN,
+)
 from src.models.product import (
     MissingFieldInfo,
     ProductCardOutput,
     ProductInput,
 )
+from src.texts import TEXTS
 
 
 class AntiHallucinationGuard:
@@ -15,21 +25,14 @@ class AntiHallucinationGuard:
     Предотвращает выдумывание технических параметров языковыми моделями.
     """
 
-    CRITICAL_EQUIPMENT_FIELDS = (
-        (
-            "напряжение питания",
-            ("питание", "напряжение", "power", "в", "vac", "vdc"),
-        ),
-        (
-            "интерфейс связи",
-            ("интерфейс", "rs-485", "rs-232", "ethernet", "can", "usb"),
-        ),
-        ("степень защиты", ("степень защиты", "ip", "защита")),
-        (
-            "диапазон измерений / входы",
-            ("диапазон", "вход", "выход", "канал"),
-        ),
-    )
+    @classmethod
+    def get_critical_fields(cls) -> list[tuple[str, tuple[str, ...]]]:
+        """Загружает список критических ТТХ и ключевых слов из texts.json."""
+        raw_fields = TEXTS["audit"].get("critical_fields", [])
+        return [
+            (item["field_name"], tuple(item["keywords"]))
+            for item in raw_fields
+        ]
 
     @classmethod
     def audit_input_completeness(
@@ -40,30 +43,27 @@ class AntiHallucinationGuard:
         или требующих уточнения полей.
         """
         warnings: list[MissingFieldInfo] = []
+        messages = TEXTS["audit"]["messages"]
 
         # 1. Проверка производителя
         if not item.manufacturer or not item.manufacturer.strip():
             warnings.append(
                 MissingFieldInfo(
                     field_name="Производитель",
-                    message=(
-                        "Не указан производитель (бренд) прибора. "
-                        "Требуется уточнить для корректного SEO и гарантии."
-                    ),
+                    message=messages["missing_manufacturer"],
                     severity="warning",
                 )
             )
 
         # 2. Проверка описания
-        if not item.description or len(item.description.strip()) < 30:
+        if (
+            not item.description
+            or len(item.description.strip()) < MIN_DESCRIPTION_LEN_FOR_AUDIT
+        ):
             warnings.append(
                 MissingFieldInfo(
                     field_name="Текстовое описание / паспорт",
-                    message=(
-                        "Отсутствует подробное техническое описание или "
-                        "фрагмент паспорта. Карточка сформирована на "
-                        "основе кратких ТТХ."
-                    ),
+                    message=messages["missing_description"],
                     severity="info",
                 )
             )
@@ -78,16 +78,16 @@ class AntiHallucinationGuard:
             f"{(item.description or '').lower()}"
         )
 
-        for field_name, keywords in cls.CRITICAL_EQUIPMENT_FIELDS:
+        for field_name, keywords in cls.get_critical_fields():
             has_param = any(kw in all_text for kw in keywords)
             if not has_param:
+                msg = messages["missing_param_template"].format(
+                    field_name=field_name
+                )
                 warnings.append(
                     MissingFieldInfo(
                         field_name=field_name.capitalize(),
-                        message=(
-                            f"Параметр «{field_name}» не найден во входных "
-                            "данных. В карточке указано «данных нет»."
-                        ),
+                        message=msg,
                         severity="warning",
                     )
                 )
@@ -102,7 +102,7 @@ class AntiHallucinationGuard:
         Верифицирует сгенерированную карточку:
         - Проверяет отсутствие галлюцинаций в ТТХ;
         - Дополняет предупреждениями об отсутствующих полях;
-        - Корректирует длину SEO-заголовка, если модель превысила 70 символов.
+        - Корректирует длину SEO-заголовка и SEO-описания по лимитам ТЗ.
         """
         raw_source_text = (
             f"{input_data.name} {input_data.manufacturer} "
@@ -110,22 +110,14 @@ class AntiHallucinationGuard:
             + " ".join(f"{k} {v}" for k, v in input_data.specs.items())
         )
         raw_source_normalized = raw_source_text.lower()
+        missing_markers = TEXTS["audit"]["missing_markers"]
 
         sanitized_specs: dict[str, str] = {}
         for k, v in card.key_specs.items():
             val_str = str(v).strip()
             # Если значение помечено как отсутствующее
-            if any(
-                term in val_str.lower()
-                for term in [
-                    "данных нет",
-                    "не указан",
-                    "нет данных",
-                    "н/д",
-                    "n/a",
-                ]
-            ):
-                sanitized_specs[k] = "данных нет"
+            if any(term in val_str.lower() for term in missing_markers):
+                sanitized_specs[k] = DATA_NOT_FOUND_LABEL
                 continue
 
             # Извлекаем числовые метрики из значения
@@ -133,7 +125,6 @@ class AntiHallucinationGuard:
             numbers = re.findall(r"\b\d+(?:[.,]\d+)?\b", val_str)
             hallucinated = False
             for num in numbers:
-                # Нормализуем запятую и точку
                 num_alt = (
                     num.replace(",", ".")
                     if "," in num
@@ -148,10 +139,7 @@ class AntiHallucinationGuard:
                     break
 
             if hallucinated:
-                # Заменяем вымышленное значение на безопасную пометку
-                sanitized_specs[k] = (
-                    f"{val_str} (требует уточнения: нет в паспорте)"
-                )
+                sanitized_specs[k] = f"{val_str} ({DATA_UNVERIFIED_SUFFIX})"
                 card.is_hallucination_free = False
             else:
                 sanitized_specs[k] = val_str
@@ -166,33 +154,28 @@ class AntiHallucinationGuard:
                 card.missing_fields.append(w)
 
         # Контроль длины SEO-заголовка (жесткий лимит до 70 символов)
-        if len(card.seo_title) > 70:
-            trimmed = card.seo_title[:67].rsplit(" ", 1)[0] + "..."
+        if len(card.seo_title) > SEO_TITLE_MAX_LEN:
+            cutoff = SEO_TITLE_MAX_LEN - 3
+            trimmed = card.seo_title[:cutoff].rsplit(" ", 1)[0] + "..."
             card.seo_title = trimmed
 
         # Контроль объема SEO-описания (диапазон 800-1200 символов)
         current_desc = " ".join(card.seo_description.split())
-        if len(current_desc) < 800:
-            enrichment = (
-                " Оборудование спроектировано для непрерывной надежной "
-                "эксплуатации в составе промышленных систем "
-                "автоматизации, контроля и диспетчеризации технологических "
-                "процессов. Высокая помехозащищенность, продуманная "
-                "схемотехника и соответствие стандартам обеспечивают "
-                "стабильность параметров при жестких условиях "
-                "производственной среды. Продукция сертифицирована, "
-                "сопровождается паспортом, гарантийными обязательствами и "
-                "готова к оперативной отгрузке со склада для комплексных "
-                "поставок и модернизации предприятий."
-            )
-            while len(current_desc) < 800:
+        enrichment = TEXTS["audit"]["enrichment_text"]
+        if len(current_desc) < SEO_DESC_MIN_LEN:
+            while len(current_desc) < SEO_DESC_MIN_LEN:
                 current_desc += enrichment
                 current_desc = " ".join(current_desc.split())
-            if len(current_desc) > 1200:
-                current_desc = current_desc[:1180].rsplit(".", 1)[0] + "."
+            if len(current_desc) > SEO_DESC_MAX_LEN:
+                current_desc = (
+                    current_desc[:SEO_DESC_TRUNCATE_TARGET].rsplit(".", 1)[0]
+                    + "."
+                )
 
-        elif len(current_desc) > 1200:
-            current_desc = current_desc[:1180].rsplit(".", 1)[0] + "."
+        elif len(current_desc) > SEO_DESC_MAX_LEN:
+            current_desc = (
+                current_desc[:SEO_DESC_TRUNCATE_TARGET].rsplit(".", 1)[0] + "."
+            )
 
         card.seo_description = current_desc
         card.seo_title_length = len(card.seo_title)

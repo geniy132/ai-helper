@@ -4,6 +4,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.constants import (
+    SEARCH_QUERIES_CLAMP,
+    SEO_DESC_MAX_LEN,
+    SEO_DESC_MIN_LEN,
+    SEO_TITLE_MAX_LEN,
+)
+from src.texts import TEXTS
+
 
 class ProductInput(BaseModel):
     """
@@ -97,12 +105,12 @@ class ProductCardOutput(BaseModel):
             v = [v]
         if isinstance(v, list):
             cleaned = [str(x).strip() for x in v if str(x).strip()]
-            return cleaned[:5] if len(cleaned) > 5 else cleaned
-        return [
-            "купить промышленное оборудование",
-            "каталог КИПиА",
-            "цена с ндс",
-        ]
+            return (
+                cleaned[:SEARCH_QUERIES_CLAMP]
+                if len(cleaned) > SEARCH_QUERIES_CLAMP
+                else cleaned
+            )
+        return list(TEXTS["defaults"]["search_queries"])
 
     # Metadata metrics
     seo_title_length: int = Field(default=0)
@@ -135,11 +143,11 @@ class ProductCardOutput(BaseModel):
 
         range_note = (
             f"*Объём описания: {self.seo_description_length} симв. "
-            "(целевой диапазон: 800–1200)*"
+            f"(целевой диапазон: {SEO_DESC_MIN_LEN}–{SEO_DESC_MAX_LEN})*"
         )
 
         md = f"""# {self.seo_title}
-*Длина заголовка: {self.seo_title_length} симв. (лимит: 70)*
+*Длина заголовка: {self.seo_title_length} симв. (лимит: {SEO_TITLE_MAX_LEN})*
 
 ## SEO-описание
 {self.seo_description}
