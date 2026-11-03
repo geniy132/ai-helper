@@ -57,7 +57,7 @@ def main():
         if not samples_path.exists():
             print(f"Ошибка: файл {samples_path} не найден.", file=sys.stderr)
             sys.exit(1)
-        with open(samples_path, "r", encoding="utf-8") as f:
+        with open(samples_path, encoding="utf-8") as f:
             presets = json.load(f)
         item_data = presets[args.preset]
         print(
@@ -69,7 +69,7 @@ def main():
         if not input_path.exists():
             print(f"Ошибка: файл {input_path} не найден.", file=sys.stderr)
             sys.exit(1)
-        with open(input_path, "r", encoding="utf-8") as f:
+        with open(input_path, encoding="utf-8") as f:
             item_data = json.load(f)
 
     # Генерация карточки

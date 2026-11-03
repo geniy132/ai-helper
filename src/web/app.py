@@ -71,7 +71,7 @@ def get_presets():
     samples_path = DATA_DIR / "samples.json"
     if not samples_path.exists():
         return []
-    with open(samples_path, "r", encoding="utf-8") as f:
+    with open(samples_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -102,12 +102,12 @@ async def generate_product_card(
         raise HTTPException(
             status_code=422,
             detail=f"Ошибка валидации входных данных: {ve}",
-        )
+        ) from ve
     except Exception as e:
         logger.exception("Ошибка при генерации карточки")
         raise HTTPException(
             status_code=500, detail=f"Внутренняя ошибка генерации: {e}"
-        )
+        ) from e
 
 
 @app.get("/", response_class=HTMLResponse)
