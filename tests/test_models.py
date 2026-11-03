@@ -1,5 +1,5 @@
 import pytest
-from src.models.product import ProductInput, ProductCardOutput, CommercialBlock, MissingFieldInfo
+from src.models.product import ProductInput, ProductCardOutput, CommercialBlock
 
 def test_product_input_valid():
     data = {

@@ -4,12 +4,12 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Request, Query, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.models.product import ProductInput, ProductCardOutput
+from src.models.product import ProductCardOutput
 from src.services.generator import default_generator_service
 from src.config import config
 

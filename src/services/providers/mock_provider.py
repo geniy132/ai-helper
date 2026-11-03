@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
-from typing import Dict, List, Any
-from src.models.product import ProductInput, ProductCardOutput, CommercialBlock, MissingFieldInfo
+from typing import Dict
+from src.models.product import ProductInput, ProductCardOutput, CommercialBlock
 from src.services.providers.base import BaseLLMProvider
 from src.services.anti_hallucination import AntiHallucinationGuard
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Dict, List
 from src.models.product import ProductInput, ProductCardOutput, MissingFieldInfo
 
 class AntiHallucinationGuard:

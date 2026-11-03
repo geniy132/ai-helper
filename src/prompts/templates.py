@@ -1,5 +1,4 @@
 from __future__ import annotations
-import json
 from typing import Dict, Any
 
 SYSTEM_PROMPT = """Ты — ведущий технический копирайтер и эксперт по B2B-оборудованию контрольно-измерительных приборов и автоматики (КИПиА).

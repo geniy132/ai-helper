@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field, field_validator
-import json
 
 class ProductInput(BaseModel):
     """
