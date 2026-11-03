@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-помощник для карточек товаров КИПиА | B2B Союз-Прибор</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .tab-btn.active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        pre code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg shadow-sm">
+                    <i class="fa-solid fa-microchip text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">AI-помощник товарных описаний</h1>
+                    <p class="text-xs text-slate-500">B2B e-commerce КИПиА &bull; ООО «Союз-Прибор»</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 text-xs">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800">
+                    <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span>
+                    Анти-галлюцинация Guard Active
+                </span>
+                <span class="hidden sm:inline text-slate-400">|</span>
+                <span class="text-slate-500 font-mono">v1.0.0 Senior MVP</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Input and Configuration -->
+        <section class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <!-- Preset selector card -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Быстрые пресеты товаров (Каталог Союз-Прибор):
+                </label>
+                <div class="grid grid-cols-1 gap-2" id="preset-buttons">
+                    <button onclick="loadPreset(0)" class="text-left px-3 py-2 text-xs rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between group">
+                        <span class="font-medium text-slate-700 group-hover:text-blue-600">
+                            📦 1. Модуль ОВЕН МК110-224.8Д.4Р [М01]
+                        </span>
+                        <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Полный ТТХ</span>
+                    </button>
+                    <button onclick="loadPreset(1)" class="text-left px-3 py-2 text-xs rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between group">
+                        <span class="font-medium text-slate-700 group-hover:text-blue-600">
+                            📡 2. GSM/GPRS-модем ОВЕН ПМ01-24.АВ
+                        </span>
+                        <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">RS-485/232</span>
+                    </button>
+                    <button onclick="loadPreset(2)" class="text-left px-3 py-2 text-xs rounded-lg border border-amber-200 hover:border-amber-400 bg-amber-50/30 transition flex items-center justify-between group">
+                        <span class="font-medium text-amber-900 group-hover:text-amber-700">
+                            ⚠️ 3. Манометр ДМ 05063 (Неполные данные)
+                        </span>
+                        <span class="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Тест пропусков</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Tabs (JSON / Form) -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col flex-1 overflow-hidden">
+                <div class="flex items-center justify-between px-4 pt-3 border-b border-slate-200 bg-slate-50/50">
+                    <div class="flex space-x-4">
+                        <button id="tab-btn-json" onclick="switchInputTab('json')" class="pb-2 text-xs font-semibold tab-btn active">
+                            <i class="fa-solid fa-code mr-1"></i> JSON-редактор
+                        </button>
+                        <button id="tab-btn-form" onclick="switchInputTab('form')" class="pb-2 text-xs font-semibold tab-btn text-slate-500">
+                            <i class="fa-solid fa-list-check mr-1"></i> Веб-форма
+                        </button>
+                    </div>
+                    <button onclick="formatInputJson()" class="text-[11px] text-blue-600 hover:text-blue-800 pb-2">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Форматировать
+                    </button>
+                </div>
+
+                <div class="p-4 flex-1 flex flex-col">
+                    <!-- JSON Tab Content -->
+                    <div id="input-json-container" class="flex-1 flex flex-col">
+                        <textarea id="raw-json-input" rows="15" class="w-full flex-1 p-3 font-mono text-xs text-slate-800 bg-slate-900 text-slate-100 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder='{"name": "...", "manufacturer": "...", "specs": {}, "description": "..."}'></textarea>
+                    </div>
+
+                    <!-- Form Tab Content -->
+                    <div id="input-form-container" class="hidden space-y-3 flex-1 overflow-y-auto max-h-[420px]">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Название прибора *</label>
+                            <input type="text" id="form-name" class="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Манометр показывающий DM 02">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Производитель</label>
+                            <input type="text" id="form-manufacturer" class="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500" placeholder="Манотомь">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Характеристики (JSON)</label>
+                            <textarea id="form-specs" rows="4" class="w-full text-xs font-mono p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500" placeholder='{"диапазон": "0-1.6 МПа", "класс точности": "1.5"}'></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Текстовое описание / паспорт</label>
+                            <textarea id="form-desc" rows="4" class="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500" placeholder="Назначение прибора, условия эксплуатации..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Provider Selection & Generate Button -->
+                    <div class="pt-4 border-t border-slate-200 mt-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label for="provider-select" class="text-xs font-medium text-slate-600">LLM Движок:</label>
+                            <select id="provider-select" class="text-xs p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium focus:ring-2 focus:ring-blue-500">
+                                <option value="mock">⚡ Mock / Офлайн (Без ключей, Senior Rules)</option>
+                                <option value="google">✨ Google Gemini API</option>
+                                <option value="openai">🤖 OpenAI API / GPT-4o-mini</option>
+                            </select>
+                        </div>
+
+                        <button id="btn-generate" onclick="handleGenerate()" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center space-x-2">
+                            <i id="btn-icon" class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span id="btn-text">Сформировать карточку товара</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Output Card and Copy Tools -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- Metrics & Compliance Header -->
+            <div id="metrics-bar" class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex items-center space-x-2">
+                    <span class="text-slate-500 font-medium">SEO Title:</span>
+                    <span id="metric-title-len" class="font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">0 / 70 симв.</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-slate-500 font-medium">SEO Описание:</span>
+                    <span id="metric-desc-len" class="font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">0 / 800–1200 симв.</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="metric-guard-status" class="inline-flex items-center px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">
+                        <i class="fa-solid fa-shield-halved mr-1 text-slate-400"></i> Верификация ТТХ
+                    </span>
+                </div>
+            </div>
+
+            <!-- Missing fields warning alert (hidden by default) -->
+            <div id="missing-alert-box" class="hidden bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-r-xl shadow-sm text-xs">
+                <div class="flex items-start">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5 mr-2 text-sm"></i>
+                    <div>
+                        <h4 class="font-bold text-amber-900">Обнаружены пропуски в данных (Требуется уточнение контент-менеджером):</h4>
+                        <ul id="missing-alert-list" class="mt-1 list-disc list-inside text-amber-800 space-y-0.5"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Tabs Container -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden min-h-[540px]">
+                
+                <!-- Output Navigation & Copy Bar -->
+                <div class="flex items-center justify-between px-4 pt-3 border-b border-slate-200 bg-slate-50/50">
+                    <div class="flex space-x-4">
+                        <button id="out-tab-visual" onclick="switchOutputTab('visual')" class="pb-2 text-xs font-semibold tab-btn active">
+                            <i class="fa-solid fa-id-card mr-1"></i> Карточка товара
+                        </button>
+                        <button id="out-tab-markdown" onclick="switchOutputTab('markdown')" class="pb-2 text-xs font-semibold tab-btn text-slate-500">
+                            <i class="fa-brands fa-markdown mr-1"></i> Markdown
+                        </button>
+                        <button id="out-tab-text" onclick="switchOutputTab('text')" class="pb-2 text-xs font-semibold tab-btn text-slate-500">
+                            <i class="fa-solid fa-align-left mr-1"></i> Текст
+                        </button>
+                        <button id="out-tab-json" onclick="switchOutputTab('json')" class="pb-2 text-xs font-semibold tab-btn text-slate-500">
+                            <i class="fa-solid fa-brackets-curly mr-1"></i> JSON
+                        </button>
+                    </div>
+
+                    <div class="flex items-center space-x-2 pb-2">
+                        <button onclick="copyCurrentOutput()" class="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition flex items-center space-x-1">
+                            <i class="fa-regular fa-copy"></i>
+                            <span id="copy-btn-label">Скопировать</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Output Panes -->
+                <div class="p-5 flex-1 overflow-y-auto">
+
+                    <!-- Visual Card Tab -->
+                    <div id="pane-visual" class="space-y-5">
+                        <div id="placeholder-empty" class="text-center py-16 text-slate-400">
+                            <i class="fa-solid fa-file-invoice text-4xl mb-3 text-slate-300"></i>
+                            <p class="text-xs">Выберите пресет слева или заполните данные и нажмите «Сформировать карточку»</p>
+                        </div>
+
+                        <div id="card-content" class="hidden space-y-4">
+                            <!-- SEO Title block -->
+                            <div class="border-b border-slate-200 pb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 block mb-1">SEO-заголовок (H1 / Title)</span>
+                                <h2 id="card-seo-title" class="text-base font-bold text-slate-900 leading-snug"></h2>
+                            </div>
+
+                            <!-- SEO Description block -->
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">SEO-описание для каталога</span>
+                                <p id="card-seo-desc" class="text-xs text-slate-700 leading-relaxed text-justify bg-slate-50 p-3 rounded-lg border border-slate-100"></p>
+                            </div>
+
+                            <!-- Key Specs Grid -->
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">Ключевые технические характеристики</span>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-xs text-left border border-slate-200 rounded-lg">
+                                        <tbody id="card-specs-table" class="divide-y divide-slate-100"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Search Queries -->
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Поисковые запросы для продвижения</span>
+                                <div id="card-queries" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+
+                            <!-- Commercial Block -->
+                            <div class="bg-blue-50/60 p-3.5 rounded-lg border border-blue-100 space-y-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-800 flex items-center">
+                                    <i class="fa-solid fa-briefcase mr-1.5"></i> Commercial-блок для менеджера по продажам
+                                </span>
+                                <div class="text-xs space-y-1 text-slate-700">
+                                    <p><strong class="text-blue-900">Кому подходит:</strong> <span id="card-commercial-audience"></span></p>
+                                    <p><strong class="text-blue-900">Какие задачи решает:</strong> <span id="card-commercial-problems"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Markdown Pane -->
+                    <div id="pane-markdown" class="hidden h-full">
+                        <textarea id="raw-markdown-text" readonly class="w-full h-[450px] p-3 text-xs font-mono bg-slate-50 text-slate-800 rounded-lg border border-slate-200 focus:outline-none resize-none"></textarea>
+                    </div>
+
+                    <!-- Plain Text Pane -->
+                    <div id="pane-text" class="hidden h-full">
+                        <textarea id="raw-plain-text" readonly class="w-full h-[450px] p-3 text-xs font-mono bg-slate-50 text-slate-800 rounded-lg border border-slate-200 focus:outline-none resize-none"></textarea>
+                    </div>
+
+                    <!-- JSON Pane -->
+                    <div id="pane-json" class="hidden h-full">
+                        <textarea id="raw-json-output" readonly class="w-full h-[450px] p-3 text-xs font-mono bg-slate-900 text-emerald-400 rounded-lg border border-slate-700 focus:outline-none resize-none"></textarea>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs flex items-center space-x-2 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-message">Успешно скопировано в буфер обмена!</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

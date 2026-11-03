@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ai-product-card-helper:
+    build: .
+    container_name: ai_product_card_helper
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=mock
+      - HOST=0.0.0.0
+      - PORT=8000
+    restart: unless-stopped
