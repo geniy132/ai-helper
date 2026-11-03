@@ -99,6 +99,50 @@ class ProductCardOutput(BaseModel):
         default_factory=list, description="Предупреждения о недостающих данных"
     )
 
+    @field_validator("seo_title", "seo_description", mode="before")
+    def coerce_seo_strings(cls, v: Any) -> str:
+        if isinstance(v, list):
+            return " ".join(str(x).strip() for x in v if str(x).strip())
+        return str(v) if v is not None else ""
+
+    @field_validator("key_specs", mode="before")
+    def coerce_key_specs_values(cls, v: Any) -> dict[str, str]:
+        if not isinstance(v, dict):
+            return {}
+        result: dict[str, str] = {}
+        for key, val in v.items():
+            if isinstance(val, (list, tuple, set)):
+                result[str(key)] = ", ".join(
+                    str(x).strip() for x in val if str(x).strip()
+                )
+            elif isinstance(val, dict):
+                result[str(key)] = ", ".join(
+                    f"{sub_k}: {sub_v}" for sub_k, sub_v in val.items()
+                )
+            else:
+                result[str(key)] = (
+                    str(val).strip() if val is not None else ""
+                )
+        return result
+
+    @field_validator("missing_fields", mode="before")
+    def coerce_missing_fields(cls, v: Any) -> list[Any]:
+        if not isinstance(v, list):
+            return []
+        coerced: list[Any] = []
+        for item in v:
+            if isinstance(item, str):
+                coerced.append(
+                    {
+                        "field_name": item,
+                        "message": f"Параметр «{item}» требует уточнения.",
+                        "severity": "warning",
+                    }
+                )
+            elif isinstance(item, dict):
+                coerced.append(item)
+        return coerced
+
     @field_validator("search_queries", mode="before")
     def clamp_search_queries(cls, v: Any) -> list[str]:
         if isinstance(v, str):
