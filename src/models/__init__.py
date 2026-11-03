@@ -1,13 +1,13 @@
 from src.models.product import (
-    ProductInput,
-    ProductCardOutput,
     CommercialBlock,
-    MissingFieldInfo
+    MissingFieldInfo,
+    ProductCardOutput,
+    ProductInput,
 )
 
 __all__ = [
-    "ProductInput",
-    "ProductCardOutput",
     "CommercialBlock",
-    "MissingFieldInfo"
+    "MissingFieldInfo",
+    "ProductCardOutput",
+    "ProductInput",
 ]

@@ -3,7 +3,9 @@
 Удобный скрипт для запуска веб-сервера проекта.
 Использование: python run.py
 """
+
 import uvicorn
+
 from src.config import config
 
 if __name__ == "__main__":
@@ -14,5 +16,5 @@ if __name__ == "__main__":
         "src.web.app:app",
         host=config.HOST,
         port=config.PORT,
-        reload=config.DEBUG
+        reload=config.DEBUG,
     )

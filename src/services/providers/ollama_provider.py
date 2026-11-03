@@ -1,29 +1,32 @@
 from __future__ import annotations
+
 import json
 import logging
 import re
-from typing import Optional
+
 import httpx
 
-from src.models.product import ProductInput, ProductCardOutput
-from src.services.providers.base import BaseLLMProvider
-from src.services.anti_hallucination import AntiHallucinationGuard
-from src.prompts.templates import SYSTEM_PROMPT, format_user_prompt
 from src.config import config
+from src.models.product import ProductCardOutput, ProductInput
+from src.prompts.templates import SYSTEM_PROMPT, format_user_prompt
+from src.services.anti_hallucination import AntiHallucinationGuard
+from src.services.providers.base import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
+
 
 class OllamaProvider(BaseLLMProvider):
     """
     Провайдер интеграции с выбранной моделью Ollama Qwen.
-    Использует нативный REST API Ollama (/api/chat) через легковесный асинхронный httpx.
+    Использует нативный REST API Ollama (/api/chat)
+    через легковесный асинхронный httpx.
     """
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
-        model_name: Optional[str] = None,
-        timeout: float = 60.0
+        base_url: str | None = None,
+        model_name: str | None = None,
+        timeout: float = 60.0,
     ):
         self.base_url = (base_url or config.OLLAMA_BASE_URL).rstrip("/")
         self.model_name = model_name or config.OLLAMA_MODEL
@@ -41,13 +44,11 @@ class OllamaProvider(BaseLLMProvider):
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             "format": "json",
             "stream": False,
-            "options": {
-                "temperature": 0.2
-            }
+            "options": {"temperature": 0.2},
         }
 
         try:
@@ -63,14 +64,23 @@ class OllamaProvider(BaseLLMProvider):
             data = json.loads(cleaned_json_str)
 
             card = ProductCardOutput(**data)
-            sanitized_card = AntiHallucinationGuard.verify_and_sanitize(card, product)
+            sanitized_card = AntiHallucinationGuard.verify_and_sanitize(
+                card, product
+            )
             return sanitized_card
 
         except httpx.ConnectError as ce:
-            logger.error(f"Не удалось подключиться к Ollama на {self.base_url}: {ce}")
+            logger.error(
+                f"Не удалось подключиться к Ollama на {self.base_url}: {ce}"
+            )
             raise RuntimeError(
-                f"Локальный сервер Ollama не отвечает на {self.base_url}. Убедитесь, что сервис запущен: 'ollama serve'"
+                f"Локальный сервер Ollama не отвечает на {self.base_url}. "
+                "Убедитесь, что сервис запущен: 'ollama serve'"
             ) from ce
         except Exception as e:
-            logger.error(f"Ошибка генерации через Ollama ({self.model_name}): {e}")
-            raise RuntimeError(f"Сбой генерации карточки через Ollama: {str(e)}") from e
+            logger.error(
+                f"Ошибка генерации через Ollama ({self.model_name}): {e}"
+            )
+            raise RuntimeError(
+                f"Сбой генерации карточки через Ollama: {e}"
+            ) from e

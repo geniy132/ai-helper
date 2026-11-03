@@ -1,21 +1,25 @@
 import pytest
-from src.models.product import ProductInput, ProductCardOutput, CommercialBlock
+
+from src.models.product import CommercialBlock, ProductCardOutput, ProductInput
+
 
 def test_product_input_valid():
     data = {
         "name": "Манометр показывающий DM 02",
         "manufacturer": "Манотомь",
         "specs": {"диапазон": "0-1.6 МПа"},
-        "description": "Прибор для измерения давления"
+        "description": "Прибор для измерения давления",
     }
     item = ProductInput(**data)
     assert item.name == "Манометр показывающий DM 02"
     assert item.manufacturer == "Манотомь"
     assert item.specs["диапазон"] == "0-1.6 МПа"
 
+
 def test_product_input_empty_name_raises():
     with pytest.raises(ValueError):
         ProductInput(name="   ", manufacturer="Тест")
+
 
 def test_product_card_output_metrics():
     card = ProductCardOutput(
@@ -24,9 +28,8 @@ def test_product_card_output_metrics():
         key_specs={"интерфейс": "RS-485"},
         search_queries=["запрос 1", "запрос 2", "запрос 3"],
         commercial_block=CommercialBlock(
-            target_audience="Инженеры",
-            solved_problems="Автоматизация"
-        )
+            target_audience="Инженеры", solved_problems="Автоматизация"
+        ),
     )
     assert card.seo_title_length == len("Краткий заголовок")
     assert card.seo_description_length == 850
