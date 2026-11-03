@@ -52,6 +52,10 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# Documents & Local Task Specifications
+docs/
+*.pdf
+
 # Temporary extraction files
 extract_products.py
 sample_products.json
